@@ -8,12 +8,14 @@ import akka.util.ByteString
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import akka.pattern.pipe
 
 import scala.concurrent.duration.DurationInt
 
 class ProtocolParserTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
 
   private implicit val system: ActorSystem = ActorSystem(getClass.getSimpleName)
+  import system.dispatcher
   override def afterAll: Unit = TestKit.shutdownActorSystem(system)
 
   behavior of "UserClient"
@@ -59,11 +61,27 @@ class ProtocolParserTest extends AnyFlatSpec with Matchers with BeforeAndAfterAl
   behavior of "lineSplitter"
 
   it should "separate into lines" in {
-    import akka.pattern.pipe
-    import system.dispatcher
     val probe: TestProbe = TestProbe()
     val oneLineSource: Source[ByteString, NotUsed] = Source.single(examplePayLoadWholeString).map(ByteString(_))
     oneLineSource.via(lineSplitter).runWith(Sink.seq).pipeTo(probe.ref)
     probe.expectMsg(3.seconds, expectedSplitMessages)
+  }
+
+  behavior of "userParser"
+
+  it should "parse a stream of user sign-ins" in {
+    val probe: TestProbe = TestProbe()
+    val userSignIns: Source[ByteString, NotUsed] = Source(exampleUserClientMessages).map(ByteString(_))
+    userSignIns.via(userParser).runWith(Sink.seq).pipeTo(probe.ref)
+    probe.expectMsg(3.seconds, expectedUserClientsParsed)
+  }
+
+  behavior of "eventMessageParser"
+
+  it should "parse an event message stream" in {
+    val probe: TestProbe = TestProbe()
+    val eventMessages: Source[ByteString, NotUsed] = Source(examplePayloadWithBadData).map(ByteString(_))
+    eventMessages.via(eventMessageParser).runWith(Sink.seq).pipeTo(probe.ref)
+    probe.expectMsg(3.seconds, expectedMessagesParsed)
   }
 }

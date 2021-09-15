@@ -34,6 +34,12 @@ object ProtocolParser {
     }
   }
 
+  final val userParser: Flow[ByteString, (String, Option[UserClient]), NotUsed] = Flow[ByteString].map(_.utf8String)
+    .map {
+      case clientIdString@UserClient(client) => (clientIdString, Option(client))
+      case otherString: String => (otherString, None)
+    }
+
   final case class MazeMessage(sequenceId: Long, messageType: MessageType, fromUser: Option[Int], toUser: Option[Int]) {
     override def toString: String =
       (Seq(sequenceId.toString, messageType.toString) ++
@@ -56,5 +62,11 @@ object ProtocolParser {
       case _ => None
     }
   }
+
+  final val eventMessageParser: Flow[ByteString, (String, Option[MazeMessage]), NotUsed] =
+    Flow[ByteString].map(_.utf8String).map {
+      case messageString@MazeMessage(message) => (messageString, Option(message))
+      case otherString: String => (otherString, None)
+    }
 
 }
