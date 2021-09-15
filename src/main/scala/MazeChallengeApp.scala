@@ -39,10 +39,21 @@ object MazeChallengeApp extends App {
     println(s"User client connection from: ${userClientConnection.remoteAddress}")
   })
 
-  val deserialize = Flow[ByteString]
+  val userSignInFlow = Flow[ByteString]
     .via(Framing.delimiter(ByteString(PROTOCOL_MESSAGE_SEPARATOR), maximumFrameLength = 256, allowTruncation = true))
     .map(_.utf8String)
-    .map { case MazeMessage(message) => message }
+    .map {
+      case clientIdString@UserClient(client) => (clientIdString, Option(client))
+      case otherString: String => (otherString, None)
+    }
+
+  val deserializeMessageFlow = Flow[ByteString]
+    .via(Framing.delimiter(ByteString(PROTOCOL_MESSAGE_SEPARATOR), maximumFrameLength = 256, allowTruncation = true))
+    .map(_.utf8String)
+    .map {
+      case messageString@MazeMessage(message) => (messageString, Option(message))
+      case otherString: String => (otherString, None)
+    }
 
 
 }
