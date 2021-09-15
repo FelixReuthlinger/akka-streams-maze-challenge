@@ -1,9 +1,20 @@
 import ProtocolParser._
 import TestData._
+import akka.NotUsed
+import akka.actor.ActorSystem
+import akka.stream.scaladsl.{Sink, Source}
+import akka.testkit.{TestKit, TestProbe}
+import akka.util.ByteString
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class ProtocolParserTest extends AnyFlatSpec with Matchers {
+import scala.concurrent.duration.DurationInt
+
+class ProtocolParserTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
+
+  private implicit val system: ActorSystem = ActorSystem(getClass.getSimpleName)
+  override def afterAll: Unit = TestKit.shutdownActorSystem(system)
 
   behavior of "UserClient"
 
@@ -43,5 +54,16 @@ class ProtocolParserTest extends AnyFlatSpec with Matchers {
       case MazeMessage(message) => Option(message)
       case _ => None
     }.map(_.toString) should contain theSameElementsAs examplePayload
+  }
+
+  behavior of "lineSplitter"
+
+  it should "separate into lines" in {
+    import akka.pattern.pipe
+    import system.dispatcher
+    val probe: TestProbe = TestProbe()
+    val oneLineSource: Source[ByteString, NotUsed] = Source.single(examplePayLoadWholeString).map(ByteString(_))
+    oneLineSource.via(lineSplitter).runWith(Sink.seq).pipeTo(probe.ref)
+    probe.expectMsg(3.seconds, expectedSplitMessages)
   }
 }
