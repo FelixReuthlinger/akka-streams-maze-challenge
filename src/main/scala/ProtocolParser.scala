@@ -29,7 +29,7 @@ object ProtocolParser {
     override def toString: String =
       (Seq(sequenceId.toString, messageType.toString) ++
         Seq(fromUser, toUser).flatten.map(_.toString)).
-        mkString(PROTOCOL_MESSAGE_SEPARATOR)
+        mkString(s"\\$PROTOCOL_MESSAGE_ELEMENT_SEPARATOR")
   }
 
   object MazeMessage {
