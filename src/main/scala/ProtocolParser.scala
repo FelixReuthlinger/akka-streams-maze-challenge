@@ -1,5 +1,3 @@
-import MessageType.C2C_TYPES
-
 import scala.util.Try
 
 /**
@@ -14,7 +12,7 @@ object ProtocolParser {
     message.replace("\\", "")
       .split(PROTOCOL_MESSAGE_ELEMENT_SEPARATOR)
 
-  case class UserClient(clientId: Int){
+  case class UserClient(clientId: Int) {
     override def toString: String = clientId.toString
   }
 
@@ -32,7 +30,6 @@ object ProtocolParser {
       (Seq(sequenceId.toString, messageType.toString) ++
         Seq(fromUser, toUser).flatten.map(_.toString)).
         mkString(PROTOCOL_MESSAGE_SEPARATOR)
-
   }
 
   object MazeMessage {
@@ -41,13 +38,12 @@ object ProtocolParser {
         Try(MazeMessage(sequenceId.toInt, Broadcast, None, None)).toOption
       case sequenceId :: StatusUpdate() :: fromUser :: Nil =>
         Try(MazeMessage(sequenceId.toInt, StatusUpdate, Option(fromUser.toInt), None)).toOption
-      case sequenceId :: messageType :: fromUser :: toUser :: Nil if Seq(Follow, Unfollow, PrivateMessage).contains(messageType)=>
-        Try(
-          MazeMessage(sequenceId.toInt,
-            (Follow|Unfollow|PrivateMessage),
-            Option(fromUser.toInt),
-            Option(toUser.toInt))
-        ).toOption
+      case sequenceId :: Follow() :: fromUser :: toUser :: Nil =>
+        Try(MazeMessage(sequenceId.toInt, Follow, Option(fromUser.toInt), Option(toUser.toInt))).toOption
+      case sequenceId :: Unfollow() :: fromUser :: toUser :: Nil =>
+        Try(MazeMessage(sequenceId.toInt, Unfollow, Option(fromUser.toInt), Option(toUser.toInt))).toOption
+      case sequenceId :: PrivateMessage() :: fromUser :: toUser :: Nil =>
+        Try(MazeMessage(sequenceId.toInt, PrivateMessage, Option(fromUser.toInt), Option(toUser.toInt))).toOption
       case _ => None
     }
   }

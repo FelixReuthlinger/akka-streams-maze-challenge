@@ -10,15 +10,11 @@ class MessageTypeTest extends AnyFlatSpec with Matchers {
 
   it should "transform to enum" in {
     testTypeStrings.
-      map(MessageType.fromString) should contain theSameElementsAs testTypeEnums
-
+      flatMap(MessageType.fromString) should contain theSameElementsAs testTypeEnums
   }
 
-  it should "fail on bad input" in {
-    val exception: IllegalArgumentException = intercept[IllegalArgumentException]{
-      MessageType.fromString(input =  "abc")
-    }
-    exception.getMessage shouldBe "message type 'abc' not supported"
+  it should "return None on bad input" in {
+      MessageType.fromString(input =  "abc")shouldBe None
   }
 
   behavior of "unapply"

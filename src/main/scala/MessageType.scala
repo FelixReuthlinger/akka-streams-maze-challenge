@@ -1,5 +1,5 @@
 sealed trait MessageType {
-  final def unapply(typeString: String): Boolean = typeString == toString
+  def unapply(typeString: String): Boolean = typeString == toString
 }
 
 object MessageType {
