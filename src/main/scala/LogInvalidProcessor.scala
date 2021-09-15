@@ -1,15 +1,17 @@
 import LogInvalidProcessor._
+import ProtocolParser.userParser
 import akka.{Done, NotUsed}
 import akka.actor.ActorSystem
 import akka.stream.{ClosedShape, UniformFanOutShape}
 import akka.stream.scaladsl.{Flow, GraphDSL, Partition, RunnableGraph, Sink, Source}
+import akka.util.ByteString
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class LogInvalidProcessor[T <: Product]
 (
-  source: Source[(String, Option[T]), NotUsed],
+  source: Source[ByteString, NotUsed],
   successfulSink: Sink[T, Future[Seq[T]]]
 )(implicit system: ActorSystem, ec: ExecutionContext) {
 
@@ -25,7 +27,7 @@ class LogInvalidProcessor[T <: Product]
           import GraphDSL.Implicits._
           val partition: UniformFanOutShape[(String, Option[T]), (String, Option[T])] =
             builder.add(Partition[(String, Option[T])](outputPorts = 2, element => optionPartitioner[T](element._2)))
-          source ~> partition.in
+          source.via(userParser) ~> partition.in
           partition.out(0) ~> noneStringMapper[T] ~> logSink
           partition.out(1) ~> someMapper[T] ~> outputSink
           ClosedShape
