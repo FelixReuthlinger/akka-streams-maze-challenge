@@ -1,11 +1,10 @@
 import LogInvalidProcessor._
 import ProtocolParser.userParser
-import akka.{Done, NotUsed}
 import akka.actor.ActorSystem
-import akka.stream.{ClosedShape, UniformFanOutShape}
 import akka.stream.scaladsl.{Flow, GraphDSL, Partition, RunnableGraph, Sink, Source}
+import akka.stream.{ClosedShape, UniformFanOutShape}
 import akka.util.ByteString
-import org.slf4j.{Logger, LoggerFactory}
+import akka.{Done, NotUsed}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -15,10 +14,8 @@ class LogInvalidProcessor[T <: Product]
   successfulSink: Sink[T, Future[Seq[T]]]
 )(implicit system: ActorSystem, ec: ExecutionContext) {
 
-  final lazy val logger: Logger = LoggerFactory.getLogger(getClass.getSimpleName)
-
   final val logSink: Sink[String, Future[Done]] =
-    Sink.foreach((invalidString: String) => logger.warn(s"found invalid message string: '$invalidString'"))
+    Sink.foreach((invalidString: String) => system.log.warning(s"found invalid message string: '$invalidString'"))
 
   val splitOffBadStringAndLog: RunnableGraph[Future[Seq[T]]] = {
     RunnableGraph

@@ -1,5 +1,5 @@
 import akka.NotUsed
-import akka.stream.scaladsl.{Flow, Framing}
+import akka.stream.scaladsl.Flow
 import akka.util.ByteString
 
 import scala.util.Try
@@ -12,9 +12,6 @@ object ProtocolParser {
   final val PROTOCOL_MESSAGE_SEPARATOR = "\r\n"
   final val PROTOCOL_MESSAGE_ESCAPE = "\\"
   final val PROTOCOL_MESSAGE_ELEMENT_SEPARATOR = '|'
-
-  final val lineSplitter: Flow[ByteString, ByteString, NotUsed] =
-    Framing.delimiter(ByteString(PROTOCOL_MESSAGE_SEPARATOR), maximumFrameLength = 256, allowTruncation = true)
 
   final def messageElements(message: String): Array[String] =
     message
