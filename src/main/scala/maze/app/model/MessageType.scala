@@ -1,3 +1,5 @@
+package maze.app.model
+
 sealed trait MessageType {
   def unapply(typeString: String): Boolean = typeString == toString
 }

@@ -1,5 +1,7 @@
-import ProtocolParser.{MazeMessage, PROTOCOL_MESSAGE_SEPARATOR, UserClient}
+package maze.app.model
+
 import akka.util.ByteString
+import maze.app.model.Common.PROTOCOL_MESSAGE_SEPARATOR
 
 object TestData {
 
@@ -25,7 +27,6 @@ object TestData {
   final val examplePayload: Array[String] =
     Array(examplePayload1, examplePayload2, examplePayload3, examplePayload4, examplePayload5)
   final val examplePayloadWithBadData: Array[String] = examplePayload ++ Array(examplePayload6BadType)
-
 
 
   final val examplePayLoadWholeString: String = examplePayload.mkString(PROTOCOL_MESSAGE_SEPARATOR)
