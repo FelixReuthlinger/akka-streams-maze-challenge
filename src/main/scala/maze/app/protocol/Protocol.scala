@@ -23,6 +23,8 @@ object Protocol {
     Sink.foreach(message => system.log.info(message.toString))
   final val logSinkUserSignIn: Sink[UserClient, _] =
     Sink.foreach(client => system.log.info(s"client '$client' signed in"))
+  final val logSinkMessagePassed: Sink[MazeMessage, _] =
+    Sink.foreach(message => system.log.info(s"message '$message' was passed"))
 
   private final val parserUser: ByteString => UserClient = _.utf8String match {
     case UserClient(client) => client
