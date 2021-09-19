@@ -17,5 +17,5 @@ object TcpConnector {
 
   def setupConnections()(implicit system: ActorSystem):
   (Source[IncomingConnection, Future[ServerBinding]], Source[IncomingConnection, Future[ServerBinding]]) =
-    (establishIncomingConnections(port = EVENT_SOURCE_PORT), establishIncomingConnections(port = EVENT_SOURCE_PORT))
+    (establishIncomingConnections(port = EVENT_SOURCE_PORT), establishIncomingConnections(port = USER_CLIENT_PORT))
 }
