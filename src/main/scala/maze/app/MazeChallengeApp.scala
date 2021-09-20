@@ -2,11 +2,12 @@ package maze.app
 
 import akka.Done
 import akka.actor.ActorSystem
+import akka.stream.scaladsl.Flow
 import akka.stream.scaladsl.Tcp.IncomingConnection
-import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.util.ByteString
-import maze.app.model.UserClient
+import maze.app.model.{Broadcast, Follow, MazeMessage, PrivateMessage, StatusUpdate, UserClient}
 import maze.app.protocol.Protocol._
+import maze.app.protocol.Sinks.{logSinkMessage, logSinkUserSignIn}
 
 import scala.concurrent._
 
@@ -25,33 +26,47 @@ object MazeChallengeApp extends App with SimpleActorSystem {
 
   val (eventSourceConnections, userClientConnections) = TcpConnector.setupConnections()
 
-  val eventFlow: Flow[ByteString, ByteString, _] = Flow[ByteString]
-    .via(lineSplitterSimple)
-    .via(messageParser)
-    .alsoTo(logSinkMessagePassed)
-    .alsoTo(Sink.asPublisher(false))
-    .via(Flow.fromFunction(_ => ByteString("")))
+  val follower: Map[Int, List[Int]] = Map(123 -> List(234, 456))
 
-  val userFlow: Flow[ByteString, ByteString, _] = Flow[ByteString]
-    .via(lineSplitterSimple)
-    .via(userParser)
-    .alsoTo(logSinkUserSignIn)
-    .merge(Source.fromPublisher(eventFlow))
+  val userSignInReceiveMessagesFlow: Flow[ByteString, ByteString, _] =
+    Flow[ByteString]
+      .via(lineSplitterSimple)
+      .via(userParser)
+      .alsoTo(logSinkUserSignIn)
+      //.merge() --> somehow merge the event stream in here via Sink "publisherSink" -> Publisher -> Source
+      .map(client => (client, MazeMessage(sequenceId = 123, messageType = Follow, fromUser = Option(234), toUser = Option(345))))
+      .filter { case (client: model.UserClient, message: model.MazeMessage) =>
+        (message.messageType, message.toUser, message.fromUser) match {
+          case (Follow, Some(to), Some(from)) =>
+            // something to add follow to list -> follower ++ Map(to -> from)
+            client.clientId == to
+          case (Broadcast, _, _) => true
+          case (PrivateMessage, Some(to), _) => client.clientId == to
+          case (StatusUpdate, _, Some(from)) => follower(from).contains(client.clientId)
+          case _ => false
+        }
+      }.map { case (_, message: model.MazeMessage) => ByteString(message.toString) }
+
+  val eventsInputOutputFlow: Flow[ByteString, ByteString, _] =
+    Flow[ByteString]
+      .via(lineSplitterSimple)
+      .via(messageParser)
+      .alsoTo(logSinkMessage)
+      //.alsoTo(publisherSink)
+      .map(_ => ByteString.empty)
+      .filter(_ => false)
 
   val usersConnected: Future[Done] = userClientConnections.runForeach((userClientConnection: IncomingConnection) => {
     println(s"User client connection from: ${userClientConnection.remoteAddress}")
-    userClientConnection.handleWith(userFlow)
+    userClientConnection.handleWith(userSignInReceiveMessagesFlow)
   })
 
   val eventsProcessed: Future[Done] = eventSourceConnections.runForeach((eventConnection: IncomingConnection) => {
     println(s"Event source connection from: ${eventConnection.remoteAddress}")
-    eventConnection.handleWith(eventFlow)
+    eventConnection.handleWith(eventsInputOutputFlow)
   })
 
   eventsProcessed.onComplete(_ => {
-    // disconnect users
-    // TODO
-    // end ActorSystem
     system.terminate()
   })
 
